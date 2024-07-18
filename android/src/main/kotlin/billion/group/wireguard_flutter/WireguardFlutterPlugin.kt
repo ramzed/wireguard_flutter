@@ -66,7 +66,19 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             val config = pendingConnectionConfig
             pendingConnectionConfig = null
             config?.let {
-                connect(it, Result.success(null))
+                scope.launch {
+                    connect(it, object : Result {
+                        override fun success(result: Any?) {
+                            // Handle success
+                        }
+                        override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+                            // Handle error
+                        }
+                        override fun notImplemented() {
+                            // Handle not implemented
+                        }
+                    })
+                }
             }
         }
         return havePermission
