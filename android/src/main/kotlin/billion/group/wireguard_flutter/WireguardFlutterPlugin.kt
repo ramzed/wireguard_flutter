@@ -46,6 +46,7 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private val scope = CoroutineScope(Job() + Dispatchers.Main.immediate)
     private var backend: Backend? = null
     private var havePermission = false
+    private var pendingConnectionConfig: String? = null
     private lateinit var context: Context
     private var activity: Activity? = null
     private var config: com.wireguard.config.Config? = null
@@ -60,8 +61,14 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         }
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        this.havePermission =
-            (requestCode == PERMISSIONS_REQUEST_CODE) && (resultCode == Activity.RESULT_OK)
+        this.havePermission = (requestCode == PERMISSIONS_REQUEST_CODE) && (resultCode == Activity.RESULT_OK)
+        if (havePermission && pendingConnectionConfig != null) {
+            val config = pendingConnectionConfig
+            pendingConnectionConfig = null
+            config?.let {
+                connect(it, Result.success(null))
+            }
+        }
         return havePermission
     }
 
@@ -232,6 +239,7 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         scope.launch(Dispatchers.IO) {
             try {
                 if (!havePermission) {
+                    pendingConnectionConfig = wgQuickConfig
                     checkPermission()
                     throw Exception("Permissions are not given")
                 }
