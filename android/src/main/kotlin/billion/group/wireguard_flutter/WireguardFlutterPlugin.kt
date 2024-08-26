@@ -164,6 +164,24 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 checkPermission()
                 result.success(null)
             }
+            "refresh" -> {
+                if (!isVpnChecked) {
+                    if (isVpnActive()) {
+                        state = "connected"
+                        isVpnChecked = true
+                        println("VPN is active")
+                        
+                    } else {
+                        state = "disconnected"
+                        isVpnChecked = true
+                        println("VPN is not active")
+                    }
+                    updateStage(state)
+                    result.success(getStatus())
+                } else {
+                    result.success(getStatus())
+                }
+            }
             else -> flutterNotImplemented(result)
         }
     }
@@ -231,8 +249,8 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private fun connect(wgQuickConfig: String, result: Result) {
         scope.launch(Dispatchers.IO) {
             try {
+                checkPermission()
                 if (!havePermission) {
-                    checkPermission()
                     throw Exception("Permissions are not given")
                 }
                 updateStage("prepare")
@@ -274,10 +292,10 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private fun checkPermission() {
         val intent = GoBackend.VpnService.prepare(this.activity)
         if (intent != null) {
-            havePermission = false
+            this.havePermission = false
             this.activity?.startActivityForResult(intent, PERMISSIONS_REQUEST_CODE)
         } else {
-            havePermission = true
+            this.havePermission = true
         }
     }
 
